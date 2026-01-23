@@ -70,6 +70,36 @@ public class Cipher {
                     continue;
                 }
 
+                if (input.startsWith("delete ")) {
+                    int idx = parseIndex(input.substring(7).trim(), size) - 1;
+
+                    String removed = formatTask(type, desc, by, from, to, done, idx);
+
+                    for (int i = idx; i < size - 1; i++) {
+                        type[i] = type[i + 1];
+                        desc[i] = desc[i + 1];
+                        by[i] = by[i + 1];
+                        from[i] = from[i + 1];
+                        to[i] = to[i + 1];
+                        done[i] = done[i + 1];
+                    }
+
+                    type[size - 1] = null;
+                    desc[size - 1] = null;
+                    by[size - 1] = null;
+                    from[size - 1] = null;
+                    to[size - 1] = null;
+                    done[size - 1] = false;
+
+                    size--;
+
+                    String msg = "Noted. I've removed this task:\n"
+                            + removed
+                            + "\nNow you have " + size + " tasks in the list.";
+                    printBlock(msg);
+                    continue;
+                }
+
                 if (input.startsWith("todo")) {
                     String d = input.substring(4).trim();
                     if (d.isEmpty()) {
