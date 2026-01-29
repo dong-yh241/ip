@@ -31,9 +31,9 @@ public class Cipher {
         String[] desc = new String[MAX_TASKS];
         boolean[] done = new boolean[MAX_TASKS];
 
-        LocalDateTime[] byDateTime = new LocalDateTime[MAX_TASKS];     
-        LocalDateTime[] fromDateTime = new LocalDateTime[MAX_TASKS];   
-        LocalDateTime[] toDateTime = new LocalDateTime[MAX_TASKS];    
+        LocalDateTime[] byDateTime = new LocalDateTime[MAX_TASKS];    
+        LocalDateTime[] fromDateTime = new LocalDateTime[MAX_TASKS];  
+        LocalDateTime[] toDateTime = new LocalDateTime[MAX_TASKS];     
 
         int size = 0;
         size = loadTasks(type, desc, done, byDateTime, fromDateTime, toDateTime, size);
@@ -66,10 +66,40 @@ public class Cipher {
                     } else {
                         for (int i = 0; i < size; i++) {
                             sb.append(i + 1).append(".")
-                                    .append(formatTask(type, desc, done, byDateTime, fromDateTime, toDateTime, i))
-                                    .append("\n");
+                              .append(formatTask(type, desc, done, byDateTime, fromDateTime, toDateTime, i))
+                              .append("\n");
                         }
                     }
+                    printBlock(sb.toString().trim());
+                    continue;
+                }
+
+                if (input.equals("find") || input.startsWith("find ")) {
+                    String keyword = input.length() > 4 ? input.substring(4).trim() : "";
+                    if (keyword.isEmpty()) {
+                        throw new IllegalArgumentException("Use: find <keyword>");
+                    }
+
+                    String keywordLower = keyword.toLowerCase();
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Here are the matching tasks in your list:\n");
+
+                    int matches = 0;
+                    for (int i = 0; i < size; i++) {
+                        String d = desc[i] == null ? "" : desc[i];
+                        if (d.toLowerCase().contains(keywordLower)) {
+                            sb.append(i + 1).append(".")
+                              .append(formatTask(type, desc, done, byDateTime, fromDateTime, toDateTime, i))
+                              .append("\n");
+                            matches++;
+                        }
+                    }
+
+                    if (matches == 0) {
+                        sb.append("(No matching tasks)");
+                    }
+
                     printBlock(sb.toString().trim());
                     continue;
                 }
@@ -81,7 +111,8 @@ public class Cipher {
                     saveTasks(type, desc, done, byDateTime, fromDateTime, toDateTime, size);
 
                     String msg = "Nice! I've marked this task as done:\n"
-                            + (idx + 1) + "." + formatTask(type, desc, done, byDateTime, fromDateTime, toDateTime, idx);
+                            + (idx + 1) + "."
+                            + formatTask(type, desc, done, byDateTime, fromDateTime, toDateTime, idx);
                     printBlock(msg);
                     continue;
                 }
@@ -93,7 +124,8 @@ public class Cipher {
                     saveTasks(type, desc, done, byDateTime, fromDateTime, toDateTime, size);
 
                     String msg = "OK, I've marked this task as not done yet:\n"
-                            + (idx + 1) + "." + formatTask(type, desc, done, byDateTime, fromDateTime, toDateTime, idx);
+                            + (idx + 1) + "."
+                            + formatTask(type, desc, done, byDateTime, fromDateTime, toDateTime, idx);
                     printBlock(msg);
                     continue;
                 }
@@ -222,7 +254,7 @@ public class Cipher {
                 System.out.println(LINE);
             }
         }
-
+        
         sc.close();
     }
 
@@ -421,7 +453,6 @@ public class Cipher {
     private static String formatTask(String[] type, String[] desc, boolean[] done,
                                      LocalDateTime[] byDateTime, LocalDateTime[] fromDateTime, LocalDateTime[] toDateTime,
                                      int i) {
-
         String status = done[i] ? "X" : " ";
         String t = type[i];
 
