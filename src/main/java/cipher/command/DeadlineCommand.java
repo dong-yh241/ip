@@ -1,4 +1,5 @@
 package cipher.command;
+
 import java.time.LocalDateTime;
 
 import cipher.CipherException;
@@ -8,13 +9,38 @@ import cipher.task.Task;
 import cipher.task.TaskList;
 import cipher.ui.Ui;
 
+/**
+ * Adds a {@link Deadline} task to the task list.
+ * <p>
+ * Expected format:
+ * {@code deadline <description> /by <yyyy-MM-dd> [HHmm]}
+ * <p>
+ * Examples:
+ * {@code deadline return book /by 2019-12-02}
+ * {@code deadline submit tutorial /by 2019-12-02 1800}
+ */
 public class DeadlineCommand extends Command {
     private final String args;
 
+    /**
+     * Creates a DeadlineCommand with the raw argument string.
+     *
+     * @param args Arguments after the keyword {@code deadline}
+     */
     public DeadlineCommand(String args) {
         this.args = args == null ? "" : args.trim();
     }
 
+    /**
+     * Parses the deadline command arguments, adds a deadline task, saves to storage,
+     * and shows a confirmation message via the UI.
+     *
+     * @param tasks   Task list to add the new deadline into
+     * @param ui      UI used to show feedback to the user
+     * @param storage Storage used to persist the updated task list
+     * @return A {@link CommandResult} indicating the app should continue
+     * @throws CipherException If the input format is invalid or saving fails
+     */
     @Override
     public CommandResult execute(TaskList tasks, Ui ui, Storage storage) throws CipherException {
         if (args.isEmpty()) {

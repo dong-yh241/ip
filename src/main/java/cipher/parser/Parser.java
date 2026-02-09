@@ -1,4 +1,5 @@
 package cipher.parser;
+
 import cipher.CipherException;
 import cipher.command.Command;
 import cipher.command.DeadlineCommand;
@@ -11,8 +12,21 @@ import cipher.command.MarkCommand;
 import cipher.command.TodoCommand;
 import cipher.command.UnmarkCommand;
 
+/**
+ * Parses raw user input into executable {@link Command} objects.
+ * <p>
+ * The parser identifies the command keyword (first token) and passes the remaining
+ * text as arguments to the corresponding command constructor.
+ */
 public class Parser {
 
+    /**
+     * Parses a full user command string into a {@link Command}.
+     *
+     * @param fullCommand Raw command line entered by the user.
+     * @return A {@link Command} representing the requested action.
+     * @throws CipherException If the input is empty/null, or the command keyword is unsupported.
+     */
     public static Command parse(String fullCommand) throws CipherException {
         if (fullCommand == null) {
             throw new CipherException("Please type a command.");

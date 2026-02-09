@@ -1,4 +1,5 @@
 package cipher.storage;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -16,16 +17,37 @@ import cipher.task.Event;
 import cipher.task.Task;
 import cipher.task.Todo;
 
+/**
+ * Handles loading tasks from and saving tasks to a local data file.
+ * <p>
+ * The storage format is line-based, using " | " as a delimiter, e.g.
+ * {@code T | 1 | read book}, {@code D | 0 | return book | 2019-12-02},
+ * {@code E | 0 | meeting | 2019-12-02 1400 | 2019-12-02 1600}.
+ */
 public class Storage {
     private static final DateTimeFormatter INPUT_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter INPUT_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HHmm");
 
     private final Path filePath;
 
+    /**
+     * Creates a Storage that reads/writes tasks to the given file path.
+     *
+     * @param filePath Path to the data file (e.g. {@code data/cipher.txt})
+     */
     public Storage(String filePath) {
         this.filePath = Paths.get(filePath);
     }
 
+    /**
+     * Loads tasks from the data file.
+     * <p>
+     * If the file does not exist (first run), an empty list is returned.
+     * Corrupted lines are ignored.
+     *
+     * @return List of tasks loaded from disk
+     * @throws CipherException If the file cannot be read
+     */
     public List<Task> load() throws CipherException {
         if (!Files.exists(filePath)) {
             // first run: file not present is OK
@@ -51,6 +73,14 @@ public class Storage {
         return loaded;
     }
 
+    /**
+     * Saves the given tasks to the data file.
+     * <p>
+     * Creates parent directories if needed, and overwrites the existing file.
+     *
+     * @param tasks Tasks to be persisted
+     * @throws CipherException If the file cannot be written
+     */
     public void save(List<Task> tasks) throws CipherException {
         try {
             Path parent = filePath.getParent();
@@ -70,6 +100,13 @@ public class Storage {
         }
     }
 
+    /**
+     * Parses a single storage line into a {@link Task}.
+     * Returns {@code null} if the line is corrupted or unsupported.
+     *
+     * @param line One line from the data file
+     * @return Parsed task, or {@code null} if the line is invalid
+     */
     private Task parseLine(String line) {
         // expected formats:
         // T | 1 | read book
@@ -109,11 +146,18 @@ public class Storage {
             if (done) t.markDone();
             return t;
         } catch (Exception e) {
-            // Stretch goal: corrupted data -> ignore line rather than crash
+            // corrupted data -> ignore line rather than crash
             return null;
         }
     }
 
+    /**
+     * Parses a stored date or date-time string from the data file.
+     * Returns {@code null} if parsing fails.
+     *
+     * @param raw Stored date string
+     * @return Parsed {@link LocalDateTime} or {@code null}
+     */
     private static LocalDateTime parseStoredDateOrDateTime(String raw) {
         if (raw == null || raw.isEmpty()) return null;
         try {
@@ -126,6 +170,13 @@ public class Storage {
         }
     }
 
+    /**
+     * Parses a stored date-time string (yyyy-MM-dd HHmm) from the data file.
+     * Returns {@code null} if parsing fails.
+     *
+     * @param raw Stored date-time string
+     * @return Parsed {@link LocalDateTime} or {@code null}
+     */
     private static LocalDateTime parseStoredDateTime(String raw) {
         if (raw == null || raw.isEmpty()) return null;
         try {
@@ -135,6 +186,13 @@ public class Storage {
         }
     }
 
+    /**
+     * Parses user input that is either a date (yyyy-MM-dd) or a date-time (yyyy-MM-dd HHmm).
+     *
+     * @param raw User input string
+     * @return Parsed {@link LocalDateTime}
+     * @throws CipherException If the input format is invalid
+     */
     public static LocalDateTime parseUserDateOrDateTime(String raw) throws CipherException {
         try {
             if (raw.contains(" ")) {
@@ -147,6 +205,13 @@ public class Storage {
         }
     }
 
+    /**
+     * Parses user input date-time only (yyyy-MM-dd HHmm).
+     *
+     * @param raw User input string
+     * @return Parsed {@link LocalDateTime}
+     * @throws CipherException If the input format is invalid
+     */
     public static LocalDateTime parseUserDateTimeOnly(String raw) throws CipherException {
         try {
             return LocalDateTime.parse(raw, INPUT_DATE_TIME);
@@ -156,6 +221,12 @@ public class Storage {
         }
     }
 
+    /**
+     * Converts a {@link Deadline} into the storage line format.
+     *
+     * @param d Deadline to serialize
+     * @return Storage line string for the deadline
+     */
     public static String serializeDeadline(Deadline d) {
         String stored;
         LocalDateTime by = d.getBy();
@@ -167,6 +238,12 @@ public class Storage {
         return "D | " + (d.isDone() ? 1 : 0) + " | " + d.getDescription() + " | " + stored;
     }
 
+    /**
+     * Converts an {@link Event} into the storage line format.
+     *
+     * @param e Event to serialize
+     * @return Storage line string for the event
+     */
     public static String serializeEvent(Event e) {
         return "E | " + (e.isDone() ? 1 : 0) + " | " + e.getDescription()
                 + " | " + e.getStart().format(INPUT_DATE_TIME)
