@@ -1,46 +1,88 @@
 package cipher.ui;
+
 import java.util.Scanner;
 
-import cipher.CipherException;
-
+/**
+ * Handles all user interaction for the Cipher application (text UI).
+ * Provides helper methods to print messages and read user input.
+ */
 public class Ui {
-    public static final String LINE = "____________________________________________________________";
+    private static final String LINE = "____________________________________________________________";
 
-    private final String name;
+    private final String appName;
     private final Scanner scanner;
 
-    public Ui(String name) {
-        this.name = name;
+    /**
+     * Creates a UI instance with the given application name.
+     *
+     * @param appName Name of the chatbot shown in the welcome message.
+     */
+    public Ui(String appName) {
+        this.appName = appName == null ? "Cipher" : appName;
         this.scanner = new Scanner(System.in);
     }
 
-    public void showWelcome() {
-        System.out.println(LINE);
-        System.out.println("Hello! I'm " + name);
-        System.out.println("What can I do for you?");
-        System.out.println(LINE);
-    }
-
-    public void showBye() {
-        System.out.println("Bye. Hope to see you again soon!");
-    }
-
+    /**
+     * Prints a separator line.
+     */
     public void showLine() {
         System.out.println(LINE);
     }
 
-    public String readCommand() throws CipherException {
-        if (!scanner.hasNextLine()) {
-            throw new CipherException("No input detected.");
+    /**
+     * Prints one or more lines. (Varargs version)
+     *
+     * @param lines Lines to print in order.
+     */
+    public void showLines(String... lines) {
+        if (lines == null) {
+            return;
         }
-        return scanner.nextLine().trim();
+        for (String line : lines) {
+            System.out.println(line == null ? "" : line);
+        }
     }
 
-    public void showError(String message) {
-        System.out.println("OOPS!!! " + message);
-    }
-
+    /**
+     * Prints a message (single String). Kept for backward compatibility.
+     *
+     * @param message Message to print.
+     */
     public void showMessage(String message) {
-        System.out.println(message);
+        showLines(message);
+    }
+
+    /**
+     * Prints an error message.
+     *
+     * @param message Error message to print.
+     */
+    public void showError(String message) {
+        showLines("OOPS!!! " + (message == null ? "" : message));
+    }
+
+    /**
+     * Shows the welcome banner.
+     */
+    public void showWelcome() {
+        showLine();
+        showLines("Hello! I'm " + appName, "What can I do for you?");
+        showLine();
+    }
+
+    /**
+     * Shows the bye message.
+     */
+    public void showBye() {
+        showLines("Bye. Hope to see you again soon!");
+    }
+
+    /**
+     * Reads one full line from user input.
+     *
+     * @return The raw command line entered by the user.
+     */
+    public String readCommand() {
+        return scanner.hasNextLine() ? scanner.nextLine() : "";
     }
 }
