@@ -1,4 +1,5 @@
 package cipher.task;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,30 +11,42 @@ public class TaskList {
 
     public TaskList() {
         this.tasks = new ArrayList<>();
+        assert this.tasks != null : "tasks list should be initialized";
     }
 
     public TaskList(List<Task> loaded) {
-        this.tasks = new ArrayList<>(loaded == null ? List.of() : loaded);
+        List<Task> safeLoaded = (loaded == null) ? List.of() : loaded;
+        this.tasks = new ArrayList<>(safeLoaded);
+        assert this.tasks != null : "tasks list should be initialized";
+        assert this.tasks.stream().noneMatch(t -> t == null) : "loaded tasks must not contain null";
     }
 
-    public void add(Task t) {
-        tasks.add(t);
+    public void add(Task task) {
+        assert task != null : "task to add must not be null";
+        tasks.add(task);
+        assert tasks.get(tasks.size() - 1) == task : "added task should be last element";
     }
 
     public Task get(int oneBasedIndex) throws CipherException {
-        int idx = oneBasedIndex - 1;
-        if (idx < 0 || idx >= tasks.size()) {
+        int index = oneBasedIndex - 1;
+        if (index < 0 || index >= tasks.size()) {
             throw new CipherException("Task number is out of range.");
         }
-        return tasks.get(idx);
+
+        Task task = tasks.get(index);
+        assert task != null : "stored task must not be null";
+        return task;
     }
 
     public Task remove(int oneBasedIndex) throws CipherException {
-        int idx = oneBasedIndex - 1;
-        if (idx < 0 || idx >= tasks.size()) {
+        int index = oneBasedIndex - 1;
+        if (index < 0 || index >= tasks.size()) {
             throw new CipherException("Task number is out of range.");
         }
-        return tasks.remove(idx);
+
+        Task removed = tasks.remove(index);
+        assert removed != null : "removed task must not be null";
+        return removed;
     }
 
     public int size() {

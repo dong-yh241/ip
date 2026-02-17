@@ -14,9 +14,6 @@ import cipher.command.UnmarkCommand;
 
 /**
  * Parses raw user input into executable {@link Command} objects.
- * <p>
- * The parser identifies the command keyword (first token) and passes the remaining
- * text as arguments to the corresponding command constructor.
  */
 public class Parser {
 
@@ -28,17 +25,18 @@ public class Parser {
      * @throws CipherException If the input is empty/null, or the command keyword is unsupported.
      */
     public static Command parse(String fullCommand) throws CipherException {
-        if (fullCommand == null) {
-            throw new CipherException("Please type a command.");
-        }
-        String trimmed = fullCommand.trim();
-        if (trimmed.isEmpty()) {
+        if (fullCommand == null || fullCommand.trim().isEmpty()) {
             throw new CipherException("Please type a command.");
         }
 
+        String trimmed = fullCommand.trim();
         String[] parts = trimmed.split("\\s+", 2);
+
         String keyword = parts[0];
-        String args = parts.length == 2 ? parts[1].trim() : "";
+        String args = (parts.length == 2) ? parts[1].trim() : "";
+
+        assert !keyword.isBlank() : "keyword must not be blank";
+        assert args != null : "args must not be null";
 
         switch (keyword) {
         case "bye":
