@@ -1,4 +1,5 @@
 package cipher.task;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -13,7 +14,7 @@ public class Deadline extends Task {
     private static final DateTimeFormatter OUT_DATE_TIME =
             DateTimeFormatter.ofPattern("MMM dd yyyy HH:mm", Locale.ENGLISH);
 
-    private final LocalDateTime by;
+    private LocalDateTime by; // <-- removed final
 
     public Deadline(String description, LocalDateTime by) throws CipherException {
         super(description);
@@ -25,6 +26,14 @@ public class Deadline extends Task {
 
     public LocalDateTime getBy() {
         return by;
+    }
+
+    /** Reschedules this deadline to a new date/time. */
+    public void setBy(LocalDateTime newBy) throws CipherException {
+        if (newBy == null) {
+            throw new CipherException("Deadline date/time cannot be empty.");
+        }
+        this.by = newBy;
     }
 
     private String formatBy() {
@@ -42,7 +51,6 @@ public class Deadline extends Task {
 
     @Override
     public String toStorageString() {
-        // store as either yyyy-MM-dd or yyyy-MM-dd HHmm (handled by Storage)
         return Storage.serializeDeadline(this);
     }
 }
