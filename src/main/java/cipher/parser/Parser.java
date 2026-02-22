@@ -9,6 +9,7 @@ import cipher.command.ExitCommand;
 import cipher.command.FindCommand;
 import cipher.command.ListCommand;
 import cipher.command.MarkCommand;
+import cipher.command.SnoozeCommand;
 import cipher.command.TodoCommand;
 import cipher.command.UnmarkCommand;
 
@@ -28,17 +29,18 @@ public class Parser {
      * @throws CipherException If the input is empty/null, or the command keyword is unsupported.
      */
     public static Command parse(String fullCommand) throws CipherException {
-        if (fullCommand == null) {
-            throw new CipherException("Please type a command.");
-        }
-        String trimmed = fullCommand.trim();
-        if (trimmed.isEmpty()) {
+        if (fullCommand == null || fullCommand.trim().isEmpty()) {
             throw new CipherException("Please type a command.");
         }
 
+        String trimmed = fullCommand.trim();
         String[] parts = trimmed.split("\\s+", 2);
+
         String keyword = parts[0];
         String args = parts.length == 2 ? parts[1].trim() : "";
+
+        assert !keyword.isBlank() : "keyword must not be blank";
+        assert args != null : "args must not be null";
 
         switch (keyword) {
         case "bye":
@@ -59,6 +61,8 @@ public class Parser {
             return new DeadlineCommand(args);
         case "event":
             return new EventCommand(args);
+        case "snooze":
+            return new SnoozeCommand(args);
         default:
             throw new CipherException("I'm sorry, but I don't know what that means :-(");
         }

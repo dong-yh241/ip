@@ -1,5 +1,7 @@
 package cipher.command;
 
+import java.util.List;
+
 import cipher.CipherException;
 import cipher.storage.Storage;
 import cipher.task.Task;
@@ -36,25 +38,26 @@ public class FindCommand extends Command {
      */
     @Override
     public CommandResult execute(TaskList tasks, Ui ui, Storage storage) throws CipherException {
-        if (keyword.isEmpty()) {
+        if (keyword.isBlank()) {
             throw new CipherException("Use: find <keyword>");
         }
 
         String key = keyword.toLowerCase();
+        List<Task> matches = tasks.findByKeyword(key);
+
         StringBuilder sb = new StringBuilder();
         sb.append("Here are the matching tasks in your list:\n");
 
-        int matches = 0;
-        for (int i = 1; i <= tasks.size(); i++) {
-            Task t = tasks.get(i);
-            if (t.getDescription().toLowerCase().contains(key)) {
-                sb.append(i).append(".").append(t.toDisplayString()).append("\n");
-                matches++;
-            }
+        if (matches.isEmpty()) {
+            sb.append("(No matching tasks)");
+            ui.showMessage(sb.toString());
+            return CommandResult.cont();
         }
 
-        if (matches == 0) {
-            sb.append("(No matching tasks)");
+        int index = 1;
+        for (Task task : matches) {
+            sb.append(index).append(".").append(task.toDisplayString()).append("\n");
+            index++;
         }
 
         ui.showMessage(sb.toString().trim());
