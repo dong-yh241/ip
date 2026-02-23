@@ -9,6 +9,7 @@ import cipher.command.ExitCommand;
 import cipher.command.FindCommand;
 import cipher.command.ListCommand;
 import cipher.command.MarkCommand;
+import cipher.command.SnoozeCommand;
 import cipher.command.TodoCommand;
 import cipher.command.UnmarkCommand;
 
@@ -38,6 +39,9 @@ public class Parser {
         assert !keyword.isBlank() : "keyword must not be blank";
         assert args != null : "args must not be null";
 
+        assert !keyword.isBlank() : "keyword must not be blank";
+        assert args != null : "args must not be null";
+
         switch (keyword) {
         case "bye":
             return new ExitCommand();
@@ -57,6 +61,8 @@ public class Parser {
             return new DeadlineCommand(args);
         case "event":
             return new EventCommand(args);
+        case "snooze":
+            return new SnoozeCommand(args);
         default:
             throw new CipherException("I'm sorry, but I don't know what that means :-(");
         }

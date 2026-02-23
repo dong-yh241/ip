@@ -3,6 +3,7 @@ package cipher.task;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import cipher.CipherException;
 
@@ -50,10 +51,33 @@ public class TaskList {
     }
 
     public int size() {
+        assert tasks.size() >= 0 : "size should never be negative";
         return tasks.size();
     }
 
     public List<Task> snapshot() {
-        return Collections.unmodifiableList(tasks);
+        List<Task> view = Collections.unmodifiableList(tasks);
+        assert view != null : "snapshot view should not be null";
+        return view;
+    }
+
+    /**
+     * Returns tasks whose descriptions contain the given keyword.
+     * Uses Java Streams (A-Streams).
+     *
+     * @param keyword keyword to search for (non-null, non-blank)
+     * @return an unmodifiable list of matching tasks
+     */
+    public List<Task> findByKeyword(String keyword) {
+        assert keyword != null : "keyword must not be null";
+
+        String k = keyword.trim();
+        assert !k.isEmpty() : "keyword must not be empty";
+
+        return tasks.stream()
+                .filter(t -> t != null)
+                .filter(t -> t.getDescription() != null)
+                .filter(t -> t.getDescription().contains(k))
+                .collect(Collectors.toUnmodifiableList());
     }
 }
