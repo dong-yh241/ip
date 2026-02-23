@@ -3,7 +3,10 @@ package cipher.storage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -19,80 +22,71 @@ import cipher.task.Todo;
 
 /**
  * Handles loading tasks from and saving tasks to a local data file.
- * <p>
- * The storage format is line-based, using " | " as a delimiter, e.g.
- * {@code T | 1 | read book}, {@code D | 0 | return book | 2019-12-02},
- * {@code E | 0 | meeting | 2019-12-02 1400 | 2019-12-02 1600}.
+ * Storage format is line-based using " | " as a delimiter.
  */
 public class Storage {
-    private static final DateTimeFormatter INPUT_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter INPUT_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HHmm");
+    private static final DateTimeFormatter INPUT_DATE =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter INPUT_DATE_TIME =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HHmm");
 
     private final Path filePath;
 
-    /**
-     * Creates a Storage that reads/writes tasks to the given file path.
-     *
-     * @param filePath Path to the data file (e.g. {@code data/cipher.txt})
-     */
     public Storage(String filePath) {
+        assert filePath != null : "filePath must not be null";
+        assert !filePath.isBlank() : "filePath must not be blank";
         this.filePath = Paths.get(filePath);
     }
 
-    /**
-     * Loads tasks from the data file.
-     * <p>
-     * If the file does not exist (first run), an empty list is returned.
-     * Corrupted lines are ignored.
-     *
-     * @return List of tasks loaded from disk
-     * @throws CipherException If the file cannot be read
-     */
     public List<Task> load() throws CipherException {
+        assert filePath != null : "filePath must not be null";
+
         if (!Files.exists(filePath)) {
-            // first run: file not present is OK
             return List.of();
         }
 
-        ArrayList<Task> loaded = new ArrayList<>();
-        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+        ArrayList<Task> loadedTasks = new ArrayList<>();
+
+        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
             String line;
-            while ((line = br.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) {
+            while ((line = reader.readLine()) != null) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty()) {
                     continue;
                 }
-                Task t = parseLine(line);
-                if (t != null) {
-                    loaded.add(t);
+
+                Task task = parseLine(trimmed);
+                if (task != null) {
+                    loadedTasks.add(task);
                 }
             }
         } catch (IOException e) {
             throw new CipherException("Could not read data file: " + e.getMessage());
         }
-        return loaded;
+
+        assert loadedTasks.stream().noneMatch(t -> t == null)
+                : "loadedTasks must not contain null tasks";
+        return loadedTasks;
     }
 
-    /**
-     * Saves the given tasks to the data file.
-     * <p>
-     * Creates parent directories if needed, and overwrites the existing file.
-     *
-     * @param tasks Tasks to be persisted
-     * @throws CipherException If the file cannot be written
-     */
     public void save(List<Task> tasks) throws CipherException {
+        assert tasks != null : "tasks must not be null";
+        assert tasks.stream().noneMatch(t -> t == null) : "tasks must not contain null elements";
+
         try {
             Path parent = filePath.getParent();
             if (parent != null) {
                 Files.createDirectories(parent);
             }
 
-            try (BufferedWriter bw = Files.newBufferedWriter(
-                    filePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-                for (Task t : tasks) {
-                    bw.write(t.toStorageString());
-                    bw.newLine();
+            try (BufferedWriter writer = Files.newBufferedWriter(
+                    filePath,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING)) {
+
+                for (Task task : tasks) {
+                    writer.write(task.toStorageString());
+                    writer.newLine();
                 }
             }
         } catch (IOException e) {
@@ -101,65 +95,76 @@ public class Storage {
     }
 
     /**
-     * Parses a single storage line into a {@link Task}.
-     * Returns {@code null} if the line is corrupted or unsupported.
-     *
-     * @param line One line from the data file
-     * @return Parsed task, or {@code null} if the line is invalid
+     * Parses one line in the storage file. Returns null if the line is invalid/corrupted.
      */
     private Task parseLine(String line) {
-        // expected formats:
-        // T | 1 | read book
-        // D | 0 | return book | 2019-12-02
-        // D | 0 | submit tutorial | 2019-12-02 1800
-        // E | 0 | meeting | 2019-12-02 1400 | 2019-12-02 1600
+        assert line != null : "line must not be null";
+        assert !line.isBlank() : "line must not be blank";
+
         try {
             String[] parts = line.split("\\s*\\|\\s*");
             if (parts.length < 3) {
-                return null; // ignore corrupted line
-            }
-
-            String type = parts[0].trim();
-            boolean done = "1".equals(parts[1].trim());
-            String desc = parts[2].trim();
-
-            Task t;
-            switch (type) {
-            case "T":
-                t = new Todo(desc);
-                break;
-            case "D":
-                if (parts.length < 4) return null;
-                LocalDateTime by = parseStoredDateOrDateTime(parts[3].trim());
-                t = new Deadline(desc, by);
-                break;
-            case "E":
-                if (parts.length < 5) return null;
-                LocalDateTime start = parseStoredDateTime(parts[3].trim());
-                LocalDateTime end = parseStoredDateTime(parts[4].trim());
-                t = new Event(desc, start, end);
-                break;
-            default:
                 return null;
             }
 
-            if (done) t.markDone();
-            return t;
+            String type = parts[0].trim();
+            String doneFlag = parts[1].trim();
+            String description = parts[2].trim();
+
+            assert !type.isBlank() : "type must not be blank";
+            assert !description.isBlank() : "description must not be blank";
+
+            boolean isDone = "1".equals(doneFlag);
+
+            Task task = buildTaskFromParts(type, description, parts);
+            if (task == null) {
+                return null;
+            }
+
+            if (isDone) {
+                task.markDone();
+            }
+
+            assert task != null : "task must not be null after parsing";
+            return task;
+
         } catch (Exception e) {
-            // corrupted data -> ignore line rather than crash
+            return null; // ignore corrupted lines
+        }
+    }
+
+    private Task buildTaskFromParts(String type, String description, String[] parts) {
+        switch (type) {
+        case "T":
+            return new Todo(description);
+
+        case "D":
+            if (parts.length < 4) {
+                return null;
+            }
+            LocalDateTime by = parseStoredDateOrDateTime(parts[3].trim());
+            return (by == null) ? null : new Deadline(description, by);
+
+        case "E":
+            if (parts.length < 5) {
+                return null;
+            }
+            LocalDateTime start = parseStoredDateTime(parts[3].trim());
+            LocalDateTime end = parseStoredDateTime(parts[4].trim());
+            if (start == null || end == null) {
+                return null;
+            }
+            return new Event(description, start, end);
+
+        default:
             return null;
         }
     }
 
-    /**
-     * Parses a stored date or date-time string from the data file.
-     * Returns {@code null} if parsing fails.
-     *
-     * @param raw Stored date string
-     * @return Parsed {@link LocalDateTime} or {@code null}
-     */
     private static LocalDateTime parseStoredDateOrDateTime(String raw) {
-        if (raw == null || raw.isEmpty()) return null;
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
         try {
             if (raw.contains(" ")) {
                 return LocalDateTime.parse(raw, INPUT_DATE_TIME);
@@ -170,15 +175,10 @@ public class Storage {
         }
     }
 
-    /**
-     * Parses a stored date-time string (yyyy-MM-dd HHmm) from the data file.
-     * Returns {@code null} if parsing fails.
-     *
-     * @param raw Stored date-time string
-     * @return Parsed {@link LocalDateTime} or {@code null}
-     */
     private static LocalDateTime parseStoredDateTime(String raw) {
-        if (raw == null || raw.isEmpty()) return null;
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
         try {
             return LocalDateTime.parse(raw, INPUT_DATE_TIME);
         } catch (DateTimeParseException e) {
@@ -186,67 +186,51 @@ public class Storage {
         }
     }
 
-    /**
-     * Parses user input that is either a date (yyyy-MM-dd) or a date-time (yyyy-MM-dd HHmm).
-     *
-     * @param raw User input string
-     * @return Parsed {@link LocalDateTime}
-     * @throws CipherException If the input format is invalid
-     */
     public static LocalDateTime parseUserDateOrDateTime(String raw) throws CipherException {
+        assert raw != null : "user date input must not be null";
+
         try {
             if (raw.contains(" ")) {
                 return LocalDateTime.parse(raw, INPUT_DATE_TIME);
             }
             return LocalDate.parse(raw, INPUT_DATE).atStartOfDay();
         } catch (DateTimeParseException e) {
-            throw new CipherException(
-                    "Invalid date format. Use yyyy-MM-dd or yyyy-MM-dd HHmm (e.g., 2019-12-02 1800).");
+            throw new CipherException("Invalid date format. Use yyyy-MM-dd or yyyy-MM-dd HHmm.");
         }
     }
 
-    /**
-     * Parses user input date-time only (yyyy-MM-dd HHmm).
-     *
-     * @param raw User input string
-     * @return Parsed {@link LocalDateTime}
-     * @throws CipherException If the input format is invalid
-     */
     public static LocalDateTime parseUserDateTimeOnly(String raw) throws CipherException {
+        assert raw != null : "user date-time input must not be null";
+
         try {
             return LocalDateTime.parse(raw, INPUT_DATE_TIME);
         } catch (DateTimeParseException e) {
-            throw new CipherException(
-                    "Invalid date/time format. Use yyyy-MM-dd HHmm (e.g., 2019-12-02 1400).");
+            throw new CipherException("Invalid date/time format. Use yyyy-MM-dd HHmm.");
         }
     }
 
-    /**
-     * Converts a {@link Deadline} into the storage line format.
-     *
-     * @param d Deadline to serialize
-     * @return Storage line string for the deadline
-     */
-    public static String serializeDeadline(Deadline d) {
-        String stored;
-        LocalDateTime by = d.getBy();
-        if (by.getHour() == 0 && by.getMinute() == 0) {
-            stored = by.toLocalDate().format(INPUT_DATE);
-        } else {
-            stored = by.format(INPUT_DATE_TIME);
-        }
-        return "D | " + (d.isDone() ? 1 : 0) + " | " + d.getDescription() + " | " + stored;
+    public static String serializeDeadline(Deadline deadline) {
+        assert deadline != null : "deadline must not be null";
+        assert deadline.getBy() != null : "'by' must not be null";
+
+        LocalDateTime by = deadline.getBy();
+        String stored = (by.getHour() == 0 && by.getMinute() == 0)
+                ? by.toLocalDate().format(INPUT_DATE)
+                : by.format(INPUT_DATE_TIME);
+
+        return "D | " + (deadline.isDone() ? 1 : 0)
+                + " | " + deadline.getDescription()
+                + " | " + stored;
     }
 
-    /**
-     * Converts an {@link Event} into the storage line format.
-     *
-     * @param e Event to serialize
-     * @return Storage line string for the event
-     */
-    public static String serializeEvent(Event e) {
-        return "E | " + (e.isDone() ? 1 : 0) + " | " + e.getDescription()
-                + " | " + e.getStart().format(INPUT_DATE_TIME)
-                + " | " + e.getEnd().format(INPUT_DATE_TIME);
+    public static String serializeEvent(Event event) {
+        assert event != null : "event must not be null";
+        assert event.getStart() != null : "event start must not be null";
+        assert event.getEnd() != null : "event end must not be null";
+
+        return "E | " + (event.isDone() ? 1 : 0)
+                + " | " + event.getDescription()
+                + " | " + event.getStart().format(INPUT_DATE_TIME)
+                + " | " + event.getEnd().format(INPUT_DATE_TIME);
     }
 }
